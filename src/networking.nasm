@@ -12,7 +12,12 @@ global send_request
 global receive_data
 
 section .data
-    ; networking constants here
+
+server_addr:
+    dw 2              ; AF_INET
+    dw 0x901F         ; port 8080 which is 0x901F
+    dd 0x0100007F     ; 127.0.0.1 which is 0x0100007F
+    dq 0              ; padding - ipv4 address structure in linux expects 16 bytes total
 
 section .bss
     ; networking variables / buffers here
