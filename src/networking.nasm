@@ -33,7 +33,12 @@ create_socket:
     ret
 
 connect_to_server:
-    ; connect to server
+    ; expects socket fd (file descriptor) in rdi, rdi holds the sockets id number
+
+    mov rax, 42                  ; syscall number for connect
+    lea rsi, [rel server_addr]   ; pointer to server address
+    mov rdx, 16                  ; size of sockaddr_in
+    syscall
     ret
 
 send_request:
