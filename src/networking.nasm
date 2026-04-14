@@ -22,7 +22,7 @@ server_addr:
     dq 0              ; padding - ipv4 address structure in linux expects 16 bytes total
 
 section .bss
-    ; networking variables / buffers here
+    recv_buffer resb 1535   ; reserve 1535 bytes of memory for incoming data
 
 section .text
 
@@ -53,5 +53,10 @@ send_request:
     ret
 
 receive_data:
-    ; receive data from server
+    ; expects socket fd in rdi
+
+    mov rax, 0                 ; syscall number for read
+    lea rsi, [rel recv_buffer] ; where to store incoming bytes
+    mov rdx, 767               ; max bytes to read in this case 2FF = 767
+    syscall
     ret
