@@ -12,6 +12,8 @@ global send_request
 global receive_data
 
 section .data
+    request_str db "2FF"    ; define bytes in memory, message is 2FF
+    request_len equ 3       ; define a constant called request_len must equal the char len of the message
 
 server_addr:
     dw 2              ; AF_INET
@@ -42,7 +44,12 @@ connect_to_server:
     ret
 
 send_request:
-    ; send request to server
+    ; expects socket fd in rdi
+
+    mov rax, 1                  ; syscall number for write
+    lea rsi, [rel request_str]  ; pointer to our custom message
+    mov rdx, request_len        ; char length in the message
+    syscall
     ret
 
 receive_data:
