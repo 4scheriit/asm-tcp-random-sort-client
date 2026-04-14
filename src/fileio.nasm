@@ -20,6 +20,7 @@ section .text
 
 create_output_file:
     ; create output file
+    ; this is a test comment! yay
     ret
 
 write_random_section:
