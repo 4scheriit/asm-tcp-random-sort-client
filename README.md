@@ -163,7 +163,7 @@ Current state:
 Current Data Flow
 -----------------
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   Server -> networking.nasm -> recv_buffer -> fileio.nasm -> sorting.nasm -> fileio.nasm -> output.txt   `
+`   Server -> networking.nasm -> recv_buffer -> fileio.nasm -> sorting.nasm -> fileio.nasm -> output.txt   `
 
 ### In plain words
 
@@ -185,11 +185,11 @@ Current Request Format
 
 Right now, the networking module sends:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   2FF   `
+`   2FF   `
 
 This represents a request for:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   0x2FF = 767 bytes   `
+`   0x2FF = 767 bytes   `
 
 So the client is currently built around requesting and receiving **767 bytes** from the server.
 
@@ -200,14 +200,14 @@ The client writes data into output.txt using clearly marked sections.
 
 Current headers:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   ----- BEGINNING OF RANDOM DATA -----  ----- BEGINNING OF SORTED DATA -----   `
+`   ----- BEGINNING OF RANDOM DATA -----  ----- BEGINNING OF SORTED DATA -----   `
 
 This keeps the file output readable and matches the project requirement of clearly separating the two sections.
 
 Project Structure
 -----------------
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   .  ├── README.md  ├── .gitignore  ├── client.nasm  ├── networking.nasm  ├── fileio.nasm  ├── sorting.nasm  ├── server_lh_8080.nasm  ├── architecture-overview.md  └── team-contributions.md   `
+`   .  ├── README.md  ├── .gitignore  ├── client.nasm  ├── networking.nasm  ├── fileio.nasm  ├── sorting.nasm  ├── server_lh_8080.nasm  ├── architecture-overview.md  └── team-contributions.md   `
 
 > Note: the repository is currently organized with the .nasm files at the root level.
 
@@ -249,11 +249,11 @@ Exact build commands may change depending on the final testing environment, but 
 
 Example Linux-style flow:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   nasm -f elf64 server_lh_8080.nasm -o server_lh_8080.o  ld server_lh_8080.o -o server  nasm -f elf64 client.nasm -o client.o  nasm -f elf64 networking.nasm -o networking.o  nasm -f elf64 fileio.nasm -o fileio.o  nasm -f elf64 sorting.nasm -o sorting.o  ld client.o networking.o fileio.o sorting.o -o client   `
+`   nasm -f elf64 server_lh_8080.nasm -o server_lh_8080.o  ld server_lh_8080.o -o server  nasm -f elf64 client.nasm -o client.o  nasm -f elf64 networking.nasm -o networking.o  nasm -f elf64 fileio.nasm -o fileio.o  nasm -f elf64 sorting.nasm -o sorting.o  ld client.o networking.o fileio.o sorting.o -o client   `
 
 Then run in separate terminals:
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   ./server  ./client   `
+`   ./server  ./client   `
 
 What This Stage Shows
 ---------------------
