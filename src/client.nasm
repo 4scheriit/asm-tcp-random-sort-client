@@ -30,31 +30,47 @@ section .bss
 
 section .text
 _start:
-    ; create socket
+    ; Create socket
     call create_socket
 
-    ; connect to server
+    ; Save the socket file descriptor in r12 so we can use it again later
+    mov r12, rax        
+
+    ; Put the saved socket file descriptor into rdi because the next function expects it there
+    mov rdi, r12
+    
+    ; Connect to the server          
     call connect_to_server
 
-    ; create output file
+    ; Create output file
     call create_output_file
 
-    ; send request to server
+    ; Put the socket file descriptor into rdi again so send_request knows which socket to use
+    mov rdi, r12
+    
+    ; Send the request message to the server
     call send_request
 
-    ; receive random data
+    ; Put the socket file descriptor into rdi again so receive_data knows which socket to read from
+    mov rdi, r12
+    ; Receive random data from the server
     call receive_data
 
-    ; write random data to file
+    ; Save the number of bytes received so we can use that value later
+    mov r13, rax
+
+    ; Write random data to file
     call write_random_section
 
-    ; sort the data
+    ; Sort the data
     call selection_sort
 
-    ; write sorted data to file
+    ; Write sorted data to file
     call write_sorted_section
 
-    ; cleanup / exit
+    ; Set up the Linux exit syscall
     mov rax, 60
+    ; Exit code 0 means success
     xor rdi, rdi
+    ; End the program
     syscall
