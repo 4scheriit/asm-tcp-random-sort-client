@@ -6,6 +6,7 @@
 ; Handles socket creation, server connection,
 ; sending the request, and receiving data.
 
+global recv_buffer
 global create_socket
 global connect_to_server
 global send_request
