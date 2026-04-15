@@ -240,33 +240,38 @@ Key Technical Notes
 *   Follows a modular design with separate procedures for each responsibility
     
 *   Includes comments intended to keep the code readable for beginners
-    
+  
 
-Build and Run Notes
--------------------
+## Build and Run Notes
 
 Exact build commands may change depending on the final testing environment, but the intended workflow is:
 
-1.  Assemble the server
-    
-2.  Assemble the client modules
-    
-3.  Link the client
-    
-4.  Run the server
-    
-5.  Run the client
-    
-6.  Check output.txt
-    
+1. Assemble the server
+2. Assemble the client modules
+3. Link the client
+4. Run the server
+5. Run the client
+6. Check `output.txt`
 
 Example Linux-style flow:
 
-`   nasm -f elf64 server_lh_8080.nasm -o server_lh_8080.o  ld server_lh_8080.o -o server  nasm -f elf64 client.nasm -o client.o  nasm -f elf64 networking.nasm -o networking.o  nasm -f elf64 fileio.nasm -o fileio.o  nasm -f elf64 sorting.nasm -o sorting.o  ld client.o networking.o fileio.o sorting.o -o client   `
+```bash
+nasm -f elf64 server_lh_8080.nasm -o server_lh_8080.o
+ld server_lh_8080.o -o server
+
+nasm -f elf64 client.nasm -o client.o
+nasm -f elf64 networking.nasm -o networking.o
+nasm -f elf64 fileio.nasm -o fileio.o
+nasm -f elf64 sorting.nasm -o sorting.o
+ld client.o networking.o fileio.o sorting.o -o client
+```
 
 Then run in separate terminals:
 
-`   ./server  ./client   `
+```bash
+./server
+./client
+```
 
 What This Stage Shows
 ---------------------
