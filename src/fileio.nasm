@@ -33,7 +33,7 @@ create_output_file:
     ; 577 = O_WRONLY + O_CREAT + O_TRUNC
     ; 0644 = owner read/write, others read only
     mov rax, 2
-    mov rdi, output_filename
+    lea rdi, [rel output_filename]
     mov rsi, 577
     mov rdx, 0644o
     syscall
@@ -77,7 +77,7 @@ write_random_section:
 
     ; Write the random data header
     mov rax, 1
-    mov rsi, random_header
+    lea rsi, [rel random_header]
     mov rdx, random_header_len
     syscall
 
@@ -104,7 +104,7 @@ write_random_section:
 
     ; Write a newline after the section
     mov rax, 1
-    mov rsi, newline
+    lea rsi, [rel newline]
     mov rdx, 1
     syscall
 
@@ -144,7 +144,7 @@ write_sorted_section:
 
     ; Write the sorted data header
     mov rax, 1
-    mov rsi, sorted_header
+    lea rsi, [rel sorted_header]
     mov rdx, sorted_header_len
     syscall
 
@@ -171,7 +171,7 @@ write_sorted_section:
 
     ; Write a newline after the section
     mov rax, 1
-    mov rsi, newline
+    lea rsi, [rel newline]
     mov rdx, 1
     syscall
 
