@@ -19,6 +19,7 @@ extern receive_data
 extern create_output_file
 extern write_random_section
 extern write_sorted_section
+extern close_output_file
 
 ; sorting.nasm
 extern selection_sort
@@ -31,54 +32,63 @@ section .bss
 
 section .text
 _start:
-    ; Create socket
+    ; -------------------------
+    ; Networking setup
+    ; -------------------------
+
     call create_socket
+    mov r12, rax              ; save socket file descriptor
 
-    ; Save the socket file descriptor in r12 so we can use it again later
-    mov r12, rax        
-
-    ; Put the saved socket file descriptor into rdi because the next function expects it there
     mov rdi, r12
-    
-    ; Connect to the server          
     call connect_to_server
 
-    ; Create output file
-    call create_output_file
-
-    ; Put the socket file descriptor into rdi again so send_request knows which socket to use
     mov rdi, r12
-    
-    ; Send the request message to the server
     call send_request
 
-    ; Put the socket file descriptor into rdi again so receive_data knows which socket to read from
     mov rdi, r12
-    
-    ; Receive random data from the server
     call receive_data
+    mov r13, rax              ; save number of bytes received
 
-    ; Save the number of bytes received so we can use that value later
-    mov r13, rax
+    ; -------------------------
+    ; File setup
+    ; -------------------------
 
-    ; write random data to file
+    call create_output_file
+    mov r14, rax              ; save output file descriptor
+
+    ; -------------------------
+    ; Write random data
+    ; -------------------------
+
+    mov rdi, r14               ; file descriptor
+    lea rsi, [rel recv_buffer] ; buffer pointer
+    mov rdx, r13               ; buffer length
     call write_random_section
 
-    ; Sort the received data in recv_buffer
+    ; -------------------------
+    ; Sort received data
+    ; -------------------------
+
     lea rdi, [rel recv_buffer]
-
-    ; Pass the number of bytes received as the buffer length
     mov rsi, r13
-
-    ; Sort the received random data
     call selection_sort
 
-    ; write sorted data to file
+    ; -------------------------
+    ; Write sorted data
+    ; -------------------------
+
+    mov rdi, r14
+    lea rsi, [rel recv_buffer]
+    mov rdx, r13
     call write_sorted_section
 
-    ; Set up the Linux exit syscall
-    mov rax, 60
-    ; Exit code 0 means success
-    xor rdi, rdi
-    ; End the program
+    ; -------------------------
+    ; Cleanup
+    ; -------------------------
+
+    mov rdi, r14
+    call close_output_file
+
+    mov rax, 60               ; exit syscall
+    xor rdi, rdi              ; return code 0
     syscall
