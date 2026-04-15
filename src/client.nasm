@@ -53,6 +53,7 @@ _start:
 
     ; Put the socket file descriptor into rdi again so receive_data knows which socket to read from
     mov rdi, r12
+    
     ; Receive random data from the server
     call receive_data
 
