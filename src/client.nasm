@@ -9,6 +9,7 @@
 global _start
 
 ; networking.nasm
+extern recv_buffer
 extern create_socket
 extern connect_to_server
 extern send_request
@@ -60,13 +61,19 @@ _start:
     ; Save the number of bytes received so we can use that value later
     mov r13, rax
 
-    ; Write random data to file
+    ; write random data to file
     call write_random_section
 
-    ; Sort the data
+    ; Sort the received data in recv_buffer
+    lea rdi, [rel recv_buffer]
+
+    ; Pass the number of bytes received as the buffer length
+    mov rsi, r13
+
+    ; Sort the received random data
     call selection_sort
 
-    ; Write sorted data to file
+    ; write sorted data to file
     call write_sorted_section
 
     ; Set up the Linux exit syscall
