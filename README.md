@@ -207,7 +207,20 @@ This keeps the file output readable and matches the project requirement of clear
 Project Structure
 -----------------
 
-`   .  ├── README.md  ├── .gitignore  ├── client.nasm  ├── networking.nasm  ├── fileio.nasm  ├── sorting.nasm  ├── server_lh_8080.nasm  ├── architecture-overview.md  └── team-contributions.md   `
+```text
+.
+├── README.md
+├── .gitignore
+├── src/
+│   ├── client.nasm
+│   ├── networking.nasm
+│   ├── fileio.nasm
+│   ├── sorting.nasm
+│   └── server_lh_8080.nasm
+└── docs/
+    ├── architecture-overview.md
+    └── team-contributions.md
+```
 
 > Note: the repository is currently organized with the .nasm files at the root level.
 
