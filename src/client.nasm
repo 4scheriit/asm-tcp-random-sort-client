@@ -10,8 +10,8 @@ global _start
 
 ; networking.nasm
 extern recv_buffer
+extern requested_bytes
 extern initialize_default_request
-extern parse_request_argument
 extern allocate_recv_buffer
 extern release_recv_buffer
 extern create_socket
@@ -30,140 +30,111 @@ extern selection_sort
 
 section .text
 _start:
+    ; Track descriptors so cleanup knows what is safe to close.
+    mov r12, -1                 ; socket fd
+    mov r14, -1                 ; output file fd
+
     ; -------------------------
-    ; Request selection setup
+    ; Request initialization
     ; -------------------------
-    ; Linux places argc and argv on the stack at program start.
-    ; If the user passes one argument, use it as the requested
-    ; byte count in hex. Otherwise fall back to the default 2FF.
-
-    mov rax, [rsp]              ; argc
-    cmp rax, 2
-    jl .use_default_request
-
-    mov rdi, [rsp + 16]         ; argv[1]
-    call parse_request_argument
-    cmp rax, 0
-    jne .exit_fail
-    jmp .request_ready
-
-.use_default_request:
+    ; For now, use the default request value. This keeps the current
+    ; command-line-independent flow working while still using the shared
+    ; request state from networking.nasm.
     call initialize_default_request
     cmp rax, 0
-    jne .exit_fail
-
-.request_ready:
-    ; -------------------------
-    ; Heap buffer setup
-    ; -------------------------
+    jne .fail
 
     call allocate_recv_buffer
     cmp rax, 0
-    jne .exit_fail
-
-    ; Track descriptors so cleanup logic knows what is open.
-    mov r12, -1                 ; socket fd, -1 means not opened yet
-    mov r14, -1                 ; output file fd, -1 means not opened yet
+    jne .fail
 
     ; -------------------------
     ; Networking setup
     ; -------------------------
-
     call create_socket
     cmp rax, 0
-    jl .cleanup_fail
-    mov r12, rax                ; save socket file descriptor
+    jl .fail
+    mov r12, rax
 
     mov rdi, r12
     call connect_to_server
     cmp rax, 0
-    jl .cleanup_fail
+    jl .fail
 
     mov rdi, r12
     call send_request
     cmp rax, 0
-    jl .cleanup_fail
+    jl .fail
 
     mov rdi, r12
     call receive_data
-    mov r13, rax                ; save number of bytes received
+    mov r13, rax                ; total bytes actually received
+
+    ; Validate that the server returned the exact amount requested.
+    ; If not, treat it as failure and do not sort/write partial data.
+    cmp r13, [rel requested_bytes]
+    jne .fail
 
     ; -------------------------
     ; File setup
     ; -------------------------
-
     call create_output_file
     cmp rax, 0
-    jl .cleanup_fail
-    mov r14, rax                ; save output file descriptor
+    jl .fail
+    mov r14, rax
 
     ; -------------------------
     ; Write random data
     ; -------------------------
-
     mov rdi, r14                ; file descriptor
-    mov rsi, [rel recv_buffer]  ; pointer to heap buffer
+    mov rsi, [rel recv_buffer]  ; heap buffer pointer
     mov rdx, r13                ; buffer length
     call write_random_section
     cmp rax, 0
-    jne .cleanup_fail
+    jne .fail
 
     ; -------------------------
     ; Sort received data
     ; -------------------------
-
     mov rdi, [rel recv_buffer]
     mov rsi, r13
     call selection_sort
-    cmp rax, 0
-    jne .cleanup_fail
 
     ; -------------------------
     ; Write sorted data
     ; -------------------------
-
     mov rdi, r14
     mov rsi, [rel recv_buffer]
     mov rdx, r13
     call write_sorted_section
     cmp rax, 0
-    jne .cleanup_fail
+    jne .fail
 
     ; -------------------------
     ; Cleanup on success
     ; -------------------------
-
-    ; Problem fix:
-    ; close_output_file returns 0 on success and 1 on failure.
-    ; The old _start code ignored that result. Now we check it.
     mov rdi, r14
     call close_output_file
     cmp rax, 0
-    jne .cleanup_fail
+    jne .fail_after_file_close
     mov r14, -1
 
-    ; Close the socket too so the client does not leak a descriptor.
-    cmp r12, -1
-    je .skip_socket_close_success
     mov rdi, r12
-    mov rax, 3                  ; close syscall
+    mov rax, 3                  ; close socket
     syscall
-    cmp rax, 0
-    jl .cleanup_fail
     mov r12, -1
 
-.skip_socket_close_success:
     call release_recv_buffer
-    cmp rax, 0
-    jne .exit_fail
 
     mov rax, 60                 ; exit syscall
     xor rdi, rdi                ; return code 0
     syscall
 
-.cleanup_fail:
-    ; Best-effort cleanup path for any failure.
-    ; Close output file if it was opened.
+.fail_after_file_close:
+    mov r14, -1
+
+.fail:
+    ; Best-effort cleanup.
     cmp r14, -1
     je .skip_file_close
     mov rdi, r14
@@ -171,19 +142,16 @@ _start:
     mov r14, -1
 
 .skip_file_close:
-    ; Close the socket if it was opened.
     cmp r12, -1
-    je .skip_socket_close_fail
+    je .skip_socket_close
     mov rdi, r12
     mov rax, 3
     syscall
     mov r12, -1
 
-.skip_socket_close_fail:
-    ; Release heap buffer if it was allocated.
+.skip_socket_close:
     call release_recv_buffer
 
-.exit_fail:
     mov rax, 60
-    mov rdi, 1
+    mov rdi, 1                  ; non-zero exit on failure
     syscall
