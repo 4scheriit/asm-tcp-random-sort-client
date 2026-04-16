@@ -61,6 +61,10 @@ _start:
     cmp rax, 0
     jne .exit_fail
 
+    ; Track descriptors so cleanup logic knows what is open.
+    mov r12, -1                 ; socket fd, -1 means not opened yet
+    mov r14, -1                 ; output file fd, -1 means not opened yet
+
     ; -------------------------
     ; Networking setup
     ; -------------------------
@@ -68,7 +72,7 @@ _start:
     call create_socket
     cmp rax, 0
     jl .cleanup_fail
-    mov r12, rax              ; save socket file descriptor
+    mov r12, rax                ; save socket file descriptor
 
     mov rdi, r12
     call connect_to_server
@@ -82,7 +86,7 @@ _start:
 
     mov rdi, r12
     call receive_data
-    mov r13, rax              ; save number of bytes received
+    mov r13, rax                ; save number of bytes received
 
     ; -------------------------
     ; File setup
@@ -91,15 +95,15 @@ _start:
     call create_output_file
     cmp rax, 0
     jl .cleanup_fail
-    mov r14, rax              ; save output file descriptor
+    mov r14, rax                ; save output file descriptor
 
     ; -------------------------
     ; Write random data
     ; -------------------------
 
-    mov rdi, r14               ; file descriptor
-    mov rsi, [rel recv_buffer] ; pointer to heap buffer
-    mov rdx, r13               ; buffer length
+    mov rdi, r14                ; file descriptor
+    mov rsi, [rel recv_buffer]  ; pointer to heap buffer
+    mov rdx, r13                ; buffer length
     call write_random_section
     cmp rax, 0
     jne .cleanup_fail
@@ -126,20 +130,57 @@ _start:
     jne .cleanup_fail
 
     ; -------------------------
-    ; Cleanup
+    ; Cleanup on success
     ; -------------------------
 
+    ; Problem fix:
+    ; close_output_file returns 0 on success and 1 on failure.
+    ; The old _start code ignored that result. Now we check it.
     mov rdi, r14
     call close_output_file
+    cmp rax, 0
+    jne .cleanup_fail
+    mov r14, -1
 
+    ; Close the socket too so the client does not leak a descriptor.
+    cmp r12, -1
+    je .skip_socket_close_success
+    mov rdi, r12
+    mov rax, 3                  ; close syscall
+    syscall
+    cmp rax, 0
+    jl .cleanup_fail
+    mov r12, -1
+
+.skip_socket_close_success:
     call release_recv_buffer
+    cmp rax, 0
+    jne .exit_fail
 
-    mov rax, 60               ; exit syscall
-    xor rdi, rdi              ; return code 0
+    mov rax, 60                 ; exit syscall
+    xor rdi, rdi                ; return code 0
     syscall
 
 .cleanup_fail:
-    ; Best effort cleanup path
+    ; Best-effort cleanup path for any failure.
+    ; Close output file if it was opened.
+    cmp r14, -1
+    je .skip_file_close
+    mov rdi, r14
+    call close_output_file
+    mov r14, -1
+
+.skip_file_close:
+    ; Close the socket if it was opened.
+    cmp r12, -1
+    je .skip_socket_close_fail
+    mov rdi, r12
+    mov rax, 3
+    syscall
+    mov r12, -1
+
+.skip_socket_close_fail:
+    ; Release heap buffer if it was allocated.
     call release_recv_buffer
 
 .exit_fail:
