@@ -61,6 +61,9 @@ close_output_file:
     ret
 
 write_random_section:
+    push rbp
+    mov rbp, rsp
+
     ; Input:
     ;   rdi = file descriptor
     ;   rsi = pointer to random byte buffer
@@ -115,6 +118,7 @@ write_random_section:
     jne .random_error
 
     xor rax, rax
+    leave
     ret
 
 .random_error_after_push:
@@ -125,9 +129,12 @@ write_random_section:
 
 .random_error:
     mov rax, 1
+    leave
     ret
 
 write_sorted_section:
+    push rbp
+    mov rbp, rsp
     ; Input:
     ;   rdi = file descriptor
     ;   rsi = pointer to sorted byte buffer
@@ -182,6 +189,7 @@ write_sorted_section:
     jne .sorted_error
 
     xor rax, rax
+    leave
     ret
 
 .sorted_error_after_push:
@@ -192,4 +200,5 @@ write_sorted_section:
 
 .sorted_error:
     mov rax, 1
+    leave
     ret
