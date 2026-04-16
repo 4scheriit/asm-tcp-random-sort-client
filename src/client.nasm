@@ -31,10 +31,19 @@ extern close_output_file
 extern selection_sort
 
 section .data
+request_msg db "request sent: "
+request_msg_len equ $ - request_msg
+
 success_msg db "output.txt created", 10
 success_msg_len equ $ - success_msg
 
+newline db 10
+
+section .bss
+request_hex resb 3
+
 section .text
+
 _start:
     ; Track descriptors so cleanup knows what is safe to close.
     mov r12, -1                 ; socket fd
@@ -43,12 +52,30 @@ _start:
     ; -------------------------
     ; Request initialization
     ; -------------------------
-    ; For now, use the default request value. This keeps the current
-    ; command-line-independent flow working while still using the shared
-    ; request state from networking.nasm.
     call initialize_default_request
     cmp rax, 0
     jne .fail
+
+    ; Build and print the current 3-digit request value.
+    call build_request_hex
+
+    mov rax, 1
+    mov rdi, 1
+    lea rsi, [rel request_msg]
+    mov rdx, request_msg_len
+    syscall
+
+    mov rax, 1
+    mov rdi, 1
+    lea rsi, [rel request_hex]
+    mov rdx, 3
+    syscall
+
+    mov rax, 1
+    mov rdi, 1
+    lea rsi, [rel newline]
+    mov rdx, 1
+    syscall
 
     call allocate_recv_buffer
     cmp rax, 0
@@ -68,7 +95,7 @@ _start:
     jl .fail
 
     ; The server sends its welcome text and first prompt right away.
-    ; Read and ignore that fixed startup text before asking for bytes.
+    ; Read and ignore that startup text before asking for bytes.
     mov rdi, r12
     call discard_server_prompt
     cmp rax, 0
@@ -83,8 +110,7 @@ _start:
     call receive_data
     mov r13, rax                ; total bytes actually received
 
-    ; Validate that the server returned the exact amount requested.
-    ; If not, treat it as failure and do not sort/write partial data.
+    ; Make sure we got the full requested payload.
     cmp r13, [rel requested_bytes]
     jne .fail
 
@@ -99,9 +125,9 @@ _start:
     ; -------------------------
     ; Write random data
     ; -------------------------
-    mov rdi, r14                ; file descriptor
-    mov rsi, [rel recv_buffer]  ; heap buffer pointer
-    mov rdx, r13                ; buffer length
+    mov rdi, r14
+    mov rsi, [rel recv_buffer]
+    mov rdx, r13
     call write_random_section
     cmp rax, 0
     jne .fail
@@ -140,14 +166,14 @@ _start:
     call release_recv_buffer
 
     ; Print a clean success message
-    mov rax, 1                  ; write
-    mov rdi, 1                  ; stdout
+    mov rax, 1
+    mov rdi, 1
     lea rsi, [rel success_msg]
     mov rdx, success_msg_len
     syscall
 
-    mov rax, 60                 ; exit syscall
-    xor rdi, rdi                ; return code 0
+    mov rax, 60
+    xor rdi, rdi
     syscall
 
 .fail_after_file_close:
@@ -173,5 +199,52 @@ _start:
     call release_recv_buffer
 
     mov rax, 60
-    mov rdi, 1                  ; non-zero exit on failure
+    mov rdi, 1
     syscall
+
+
+; ------------------------------------------------------------
+; build_request_hex
+; Turns requested_bytes into a 3-digit uppercase hex string.
+; Example: 0x3A7 -> "3A7"
+; ------------------------------------------------------------
+build_request_hex:
+    mov rbx, [rel requested_bytes]
+
+    ; first digit
+    mov rax, rbx
+    shr rax, 8
+    and al, 0x0F
+    call nibble_to_ascii
+    mov [rel request_hex], al
+
+    ; second digit
+    mov rax, rbx
+    shr rax, 4
+    and al, 0x0F
+    call nibble_to_ascii
+    mov [rel request_hex + 1], al
+
+    ; third digit
+    mov rax, rbx
+    and al, 0x0F
+    call nibble_to_ascii
+    mov [rel request_hex + 2], al
+
+    ret
+
+
+; ------------------------------------------------------------
+; nibble_to_ascii
+; Input:  al = value 0..15
+; Output: al = ASCII hex character
+; ------------------------------------------------------------
+nibble_to_ascii:
+    cmp al, 9
+    jbe .digit
+    add al, 'A' - 10
+    ret
+
+.digit:
+    add al, '0'
+    ret 

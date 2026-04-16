@@ -20,7 +20,6 @@ global send_request
 global receive_data
 
 section .data
-    default_request_str db "2FF", 0 ; default request if no argument is provided
 
 server_addr:
     dw 2              ; AF_INET
@@ -29,25 +28,90 @@ server_addr:
     dq 0              ; padding so sockaddr_in is 16 bytes total
 
 section .bss
-    request_str      resb 4       ; up to 3 hex digits plus null terminator
-    request_len      resq 1       ; current request string length
-    requested_bytes  resq 1       ; numeric value requested from server
-    recv_buffer      resq 1       ; holds pointer to heap buffer
-    original_brk     resq 1       ; starting program break before allocation
-    allocated_brk    resq 1       ; program break after allocation
-    prompt_discard_buf resb 64    ; scratch space for the server startup text
+    request_str         resb 4    ; 3 hex digits + null terminator
+    request_len         resq 1
+    requested_bytes     resq 1
+    recv_buffer         resq 1
+    original_brk        resq 1
+    allocated_brk       resq 1
+    prompt_discard_buf  resb 64
+    rand_word           resd 1
 
 section .text
 
 initialize_default_request:
-    ; Return:
-    ;   rax = 0 on success
-    ;
-    ; Load the default request value of 2FF so the client still works
-    ; even when the user does not pass an argument.
+    ; Make a random request size each run.
+    ; Valid range is 0x100 to 0x5FF.
 
-    lea rdi, [rel default_request_str]
-    jmp parse_request_argument
+    mov rax, 318                    ; getrandom
+    lea rdi, [rel rand_word]
+    mov rsi, 4
+    xor rdx, rdx
+    syscall
+
+    cmp rax, 4
+    jne .random_fail
+
+    mov eax, [rel rand_word]
+    xor edx, edx
+    mov ecx, 0x500                  ; 0x5FF - 0x100 + 1 = 0x500
+    div ecx                         ; remainder in edx = 0 .. 0x4FF
+    add edx, 0x100                  ; now 0x100 .. 0x5FF
+
+    mov [rel requested_bytes], rdx
+    mov qword [rel request_len], 3
+
+    mov ebx, edx
+
+    ; first hex digit
+    mov eax, ebx
+    shr eax, 8
+    and al, 0x0F
+    cmp al, 9
+    jbe .digit1_num
+    add al, 'A' - 10
+    jmp .digit1_store
+.digit1_num:
+    add al, '0'
+.digit1_store:
+    mov [rel request_str], al
+
+    ; second hex digit
+    mov eax, ebx
+    shr eax, 4
+    and al, 0x0F
+    cmp al, 9
+    jbe .digit2_num
+    add al, 'A' - 10
+    jmp .digit2_store
+.digit2_num:
+    add al, '0'
+.digit2_store:
+    mov [rel request_str + 1], al
+
+    ; third hex digit
+    mov eax, ebx
+    and al, 0x0F
+    cmp al, 9
+    jbe .digit3_num
+    add al, 'A' - 10
+    jmp .digit3_store
+.digit3_num:
+    add al, '0'
+.digit3_store:
+    mov [rel request_str + 2], al
+
+    mov byte [rel request_str + 3], 0
+
+    xor rax, rax
+    ret
+
+.random_fail:
+    mov qword [rel request_len], 0
+    mov qword [rel requested_bytes], 0
+    mov qword [rel recv_buffer], 0
+    mov rax, 1
+    ret
 
 parse_request_argument:
     ; Input:
