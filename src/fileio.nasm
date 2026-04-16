@@ -1,10 +1,7 @@
 ; ITSC204 Computer Architecture Final Project
 ; File: fileio.nasm
-; Group members: Maxwell Brown, Filippo Cocco, Daniel Paetkau
-; Description:
-; File input/output procedures for the TCP client.
-; Handles creating the output file and writing
-; the random data and sorted data sections.
+; This file opens output.txt, writes the random section,
+; writes the sorted section, and closes the file.
 
 global create_output_file
 global write_random_section
@@ -12,26 +9,19 @@ global write_sorted_section
 global close_output_file
 
 section .data
-    ; Output file name
-    output_filename db "output.txt", 0
+output_filename db "output.txt", 0
 
-    ; Header written before the random bytes
-    random_header db "----- BEGINNING OF RANDOM DATA -----", 10
-    random_header_len equ $ - random_header
+random_header db "----- BEGINNING OF RANDOM DATA -----", 10
+random_header_len equ $ - random_header
 
-    ; Header written before the sorted bytes
-    sorted_header db "----- BEGINNING OF SORTED DATA -----", 10
-    sorted_header_len equ $ - sorted_header
+sorted_header db "----- BEGINNING OF SORTED DATA -----", 10
+sorted_header_len equ $ - sorted_header
 
-    ; Single newline byte
-    newline db 10
+newline db 10
 
 section .text
-
 create_output_file:
-    ; Open output.txt for writing
-    ; 577 = O_WRONLY + O_CREAT + O_TRUNC
-    ; 0644 = owner read/write, others read only
+    ; O_WRONLY | O_CREAT | O_TRUNC, mode 0644
     mov rax, 2
     lea rdi, [rel output_filename]
     mov rsi, 577
@@ -40,13 +30,7 @@ create_output_file:
     ret
 
 close_output_file:
-    ; Input:
-    ;   rdi = file descriptor
-    ;
-    ; Return:
-    ;   rax = 0 if success
-    ;   rax = 1 if fail
-
+    ; rdi = file descriptor
     mov rax, 3
     syscall
 
@@ -61,144 +45,103 @@ close_output_file:
     ret
 
 write_random_section:
-    push rbp
-    mov rbp, rsp
+    ; rdi = file descriptor
+    ; rsi = buffer pointer
+    ; rdx = buffer length
 
-    ; Input:
-    ;   rdi = file descriptor
-    ;   rsi = pointer to random byte buffer
-    ;   rdx = length of random byte buffer
-    ;
-    ; Return:
-    ;   rax = 0 if success
-    ;   rax = 1 if fail
-
-    ; Save original arguments before writing the header
+    ; save the real buffer args before writing the header
     push rdi
     push rsi
     push rdx
 
-    ; Write the random data header
     mov rax, 1
     lea rsi, [rel random_header]
     mov rdx, random_header_len
     syscall
 
-    ; Fail if header write failed or was incomplete
-    cmp rax, 0
-    jl .random_error_after_push
     cmp rax, random_header_len
     jne .random_error_after_push
 
-    ; Restore original arguments
+    ; get back the original args
     pop rdx
     pop rsi
     pop rdi
 
-    ; Write the random bytes
+    ; write the random bytes
     mov rax, 1
     syscall
 
-    ; Fail if data write failed or was incomplete
-    cmp rax, 0
-    jl .random_error
     cmp rax, rdx
     jne .random_error
 
-    ; Write a newline after the section
+    ; add one newline after the data
     mov rax, 1
     lea rsi, [rel newline]
     mov rdx, 1
     syscall
 
-    ; Fail if newline write failed or was incomplete
-    cmp rax, 0
-    jl .random_error
     cmp rax, 1
     jne .random_error
 
     xor rax, rax
-    leave
     ret
 
 .random_error_after_push:
-    ; Header failed, so stack values still need to be restored
     pop rdx
     pop rsi
     pop rdi
 
 .random_error:
     mov rax, 1
-    leave
     ret
 
 write_sorted_section:
-    push rbp
-    mov rbp, rsp
-    ; Input:
-    ;   rdi = file descriptor
-    ;   rsi = pointer to sorted byte buffer
-    ;   rdx = length of sorted byte buffer
-    ;
-    ; Return:
-    ;   rax = 0 if success
-    ;   rax = 1 if fail
+    ; rdi = file descriptor
+    ; rsi = buffer pointer
+    ; rdx = buffer length
 
-    ; Save original arguments before writing the header
+    ; save the real buffer args before writing the header
     push rdi
     push rsi
     push rdx
 
-    ; Write the sorted data header
     mov rax, 1
     lea rsi, [rel sorted_header]
     mov rdx, sorted_header_len
     syscall
 
-    ; Fail if header write failed or was incomplete
-    cmp rax, 0
-    jl .sorted_error_after_push
     cmp rax, sorted_header_len
     jne .sorted_error_after_push
 
-    ; Restore original arguments
+    ; get back the original args
     pop rdx
     pop rsi
     pop rdi
 
-    ; Write the sorted bytes
+    ; write the sorted bytes
     mov rax, 1
     syscall
 
-    ; Fail if data write failed or was incomplete
-    cmp rax, 0
-    jl .sorted_error
     cmp rax, rdx
     jne .sorted_error
 
-    ; Write a newline after the section
+    ; add one newline after the data
     mov rax, 1
     lea rsi, [rel newline]
     mov rdx, 1
     syscall
 
-    ; Fail if newline write failed or was incomplete
-    cmp rax, 0
-    jl .sorted_error
     cmp rax, 1
     jne .sorted_error
 
     xor rax, rax
-    leave
     ret
 
 .sorted_error_after_push:
-    ; Header failed, so stack values still need to be restored
     pop rdx
     pop rsi
     pop rdi
 
 .sorted_error:
     mov rax, 1
-    leave
     ret
