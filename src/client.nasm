@@ -30,6 +30,10 @@ extern close_output_file
 ; sorting.nasm
 extern selection_sort
 
+section .data
+success_msg db "output.txt created", 10
+success_msg_len equ $ - success_msg
+
 section .text
 _start:
     ; Track descriptors so cleanup knows what is safe to close.
@@ -134,6 +138,13 @@ _start:
     mov r12, -1
 
     call release_recv_buffer
+
+    ; Print a clean success message
+    mov rax, 1                  ; write
+    mov rdi, 1                  ; stdout
+    lea rsi, [rel success_msg]
+    mov rdx, success_msg_len
+    syscall
 
     mov rax, 60                 ; exit syscall
     xor rdi, rdi                ; return code 0
