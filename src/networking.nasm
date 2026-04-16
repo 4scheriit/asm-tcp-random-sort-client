@@ -236,31 +236,52 @@ send_request:
 receive_data:
     ; expects socket fd in rdi
     ; returns total bytes received in rax
+    ;
+    ; Register layout used consistently in this procedure:
+    ;   r8  = base pointer to heap receive buffer
+    ;   r9  = total number of bytes requested from the server
+    ;   r10 = running count of bytes successfully received
+    ;
+    ; This avoids mixed counter usage and makes the data flow easier to read
+    ; during debugging.
 
-    xor rcx, rcx                        ; total_received = 0
-    mov r8, [rel recv_buffer]           ; heap buffer pointer
-    mov r9, [rel requested_bytes]       ; number of bytes we expect
-
+    mov r8, [rel recv_buffer]        ; base pointer to heap buffer
     test r8, r8
-    jz .done                            ; stop immediately if buffer not allocated
+    jz .receive_fail
+
+    mov r9, [rel requested_bytes]    ; total bytes expected
+    test r9, r9
+    jz .receive_fail
+
+    xor r10, r10                     ; total_received = 0
 
 .receive_loop:
-    cmp rcx, r9                         ; stop when all requested bytes are read
-    jae .done
+    cmp r10, r9
+    jae .done                        ; stop once requested amount is reached
 
-    mov rax, 0                          ; syscall number for read
-    lea rsi, [r8 + rcx]                 ; write after already received bytes
     mov rdx, r9
-    sub rdx, rcx                        ; bytes still needed
+    sub rdx, r10                     ; bytes still needed
+    jz .done                         ; extra guard, should already be covered
+
+    mov rax, 0                       ; syscall number for read
+    lea rsi, [r8 + r10]              ; write after bytes already received
     syscall
 
-    ; if read failed or returned 0, stop as error/incomplete
     cmp rax, 0
-    jle .done
+    jle .done                        ; stop on EOF or read error
 
-    add rcx, rax                        ; total_received += bytes just read
-    jmp .receive_loop
+    add r10, rax
+    cmp r10, r9
+    jbe .receive_loop
+
+    ; Defensive clamp: if something ever overshoots, return failure instead
+    ; of leaving a bad byte count for later file writes or sorting.
+    jmp .receive_fail
 
 .done:
-    mov rax, rcx                        ; return total bytes received
+    mov rax, r10
+    ret
+
+.receive_fail:
+    xor rax, rax
     ret
