@@ -57,25 +57,25 @@ receive_data:
     ; expects socket fd in rdi
     ; returns total bytes received in rax
 
-    xor rcx, rcx                ; total_received = 0
+    xor r8, r8                ; total_received = 0
 
 .receive_loop:
-    cmp rcx, 767                ; stop when we have all 767 bytes
+    cmp r8, 767                ; stop when we have all 767 bytes
     jae .done
 
     mov rax, 0                  ; syscall number for read
-    lea rsi, [rel recv_buffer + rcx] ; write new bytes after what we already received
+    lea rsi, [rel recv_buffer + r8] ; write new bytes after what we already received
     mov rdx, 767
-    sub rdx, rcx                ; bytes still needed
+    sub rdx, r8                ; bytes still needed
     syscall
 
     ; if read failed or returned 0, stop as error/incomplete
     cmp rax, 0
     jle .done
 
-    add rcx, rax                ; total_received += bytes just read
+    add r8, rax                ; total_received += bytes just read
     jmp .receive_loop
 
 .done:
-    mov rax, rcx                ; return total bytes received
+    mov rax, r8                ; return total bytes received
     ret
