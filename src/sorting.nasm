@@ -1,5 +1,7 @@
 ; ITSC204 Computer Architecture Final Project
 ; File: sorting.nasm
+; Group members: Maxwell Brown, Filippo Cocco, Daniel Paetkau
+; Date: April 16, 2026
 ; Selection sort for the received bytes, plus a quick verification pass to make sure the buffer really ended up sorted
 
 global selection_sort                       ; main sorting routine called by the client

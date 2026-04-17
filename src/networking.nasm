@@ -1,5 +1,7 @@
 ; ITSC204 Computer Architecture Final Project
 ; File: networking.nasm
+; Group members: Maxwell Brown, Filippo Cocco, Daniel Paetkau
+; Date: April 16, 2026
 ; Handles request setup, heap buffer management, and the TCP client networking flow
 
 global recv_buffer

@@ -1,5 +1,7 @@
 ; ITSC204 Computer Architecture Final Project
 ; File: fileio.nasm
+; Group members: Maxwell Brown, Filippo Cocco, Daniel Paetkau
+; Date: April 16, 2026
 ; Handles output.txt creation, section headers, data writes, and file closing
 
 global create_output_file
